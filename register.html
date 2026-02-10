@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Messenger</title>
+    <style>
+        :root { --accent: #0084ff; --bg: #f0f2f5; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        
+        .reg-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h2 { margin-bottom: 10px; color: #1c1e21; }
+        p { color: #606770; font-size: 14px; margin-bottom: 25px; }
+
+        .avatar-upload { position: relative; width: 100px; height: 100px; margin: 0 auto 20px; cursor: pointer; }
+        #preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); background: #eee; }
+        .plus-icon { position: absolute; bottom: 0; right: 0; background: var(--accent); color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 3px solid white; font-weight: bold; }
+
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #dddfe2; border-radius: 8px; outline: none; font-size: 15px; }
+        input:focus { border-color: var(--accent); }
+
+        .btn-reg { width: 100%; padding: 12px; border: none; border-radius: 8px; background: var(--accent); color: white; font-size: 17px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-reg:hover { background: #0073e6; }
+        
+        .footer-link { margin-top: 20px; font-size: 14px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .footer-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
+
+        /* Branding Footer Style */
+        .branding-footer { margin-top: 20px; padding-top: 10px; }
+        .branding-footer p { font-size: 11px; opacity: 0.7; color: #606770; margin-bottom: 0; line-height: 1.5; }
+        .branding-footer span { color: var(--accent); font-weight: 600; display: block; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="reg-card">
+        <h2>Create Account</h2>
+        <p>It's quick and easy.</p>
+
+        <div class="avatar-upload" onclick="document.getElementById('file-input').click()">
+            <img id="preview" src="https://via.placeholder.com/100?text=DP">
+            <div class="plus-icon">+</div>
+            <input type="file" id="file-input" accept="image/*" style="display:none">
+        </div>
+
+        <form id="reg-form">
+            <input type="text" id="username" placeholder="Choose a Username (Unique)" required>
+            <input type="text" id="fullname" placeholder="Full Name" required>
+            <input type="text" id="location" placeholder="City / Location">
+            <input type="password" id="password" placeholder="New Password" required>
+            <button type="submit" class="btn-reg">Sign Up</button>
+        </form>
+
+        <div class="footer-link">
+            Already have an account? <a href="login.html">Log In</a>
+        </div>
+
+        <footer class="branding-footer">
+            <p>
+                Created & Maintained By
+                <span>Soham Hasan & Associates</span>
+            </p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPkoJeH96TPK3Gj5L0kSnMqL9cYdvMmto",
+            authDomain: "messenger-of-soham.firebaseapp.com",
+            projectId: "messenger-of-soham",
+            databaseURL: "https://messenger-of-soham-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let base64Image = "";
+
+        // Handle Image Preview & Conversion
+        document.getElementById('file-input').onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    document.getElementById('preview').src = event.target.result;
+                    base64Image = event.target.result; 
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // Handle Registration
+        document.getElementById('reg-form').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const user = document.getElementById('username').value.trim().toLowerCase();
+            const name = document.getElementById('fullname').value.trim();
+            const loc = document.getElementById('location').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if (!user || !pass) return;
+
+            const snapshot = await get(ref(db, 'users/' + user));
+            if (snapshot.exists()) {
+                alert("Username already taken! Try another one.");
+                return;
+            }
+
+            try {
+                await set(ref(db, 'users/' + user), {
+                    password: pass,
+                    status: "online"
+                });
+
+                await set(ref(db, 'profiles/' + user), {
+                    fullName: name,
+                    location: loc || "Hidden",
+                    photoURL: base64Image || "" 
+                });
+
+                alert("Registration Successful!");
+                localStorage.setItem('messengerUser', user);
+                window.location.href = "index.html";
+                
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
+        };
+    </script>
+</body>
+</html>

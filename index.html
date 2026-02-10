@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messenger Pro</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="stylesheet" href="summary.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="voice.css">
+    <link rel="stylesheet" href="reactions.css">
+    <script src="voice.js"></script>
+    <style>
+        :root { 
+            --bg: #f0f2f5; --sidebar: #ffffff; --accent: #0084ff; --border: #e4e6eb; 
+            --text: #050505; --msg-sent: #0084ff; --msg-received: #ffffff; 
+            --btn-hover: rgba(0, 0, 0, 0.05); --header-text: #050505;
+        }
+        [data-theme="midnight"] {
+            --bg: #0b141a; --sidebar: #111b21; --accent: #00a884; --border: #222d34; 
+            --text: #e9edef; --msg-sent: #005c4b; --msg-received: #202c33; 
+            --btn-hover: rgba(255,255,255,0.05); --header-text: #ffffff;
+        }
+        [data-theme="sunset"] {
+            --bg: #fff5f5; --sidebar: #ffffff; --accent: #ff4757; --border: #ffe0e0; 
+            --text: #2d3436; --msg-sent: #ff4757; --msg-received: #f1f2f6; 
+            --btn-hover: rgba(255, 71, 87, 0.1); --header-text: #ff4757;
+        }
+        [data-theme="forest"] {
+            --bg: #f0f4f0; --sidebar: #ffffff; --accent: #2dcc70; --border: #d5e6d5; 
+            --text: #1a2e1a; --msg-sent: #2dcc70; --msg-received: #e0eee0; 
+            --btn-hover: rgba(45, 204, 112, 0.1); --header-text: #2d6a4f;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        
+        body { display: flex; height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; transition: 0.3s; position: relative; }
+        #sidebar { width: 360px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; transition: transform 0.3s ease; }
+        .sidebar-header { padding: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        .icon-btn { background: none; border: none; cursor: pointer; color: #65676b; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; outline: none; }
+        .icon-btn:hover { background: var(--btn-hover); color: var(--accent); }
+        .icon-btn .material-icons-round { font-size: 24px; }
+        .search-area { padding: 12px 16px; }
+        .search-box { background: var(--bg); border-radius: 20px; display: flex; align-items: center; padding: 0 12px; border: 1px solid transparent; }
+        .search-box input { background: none; border: none; padding: 10px; width: 100%; outline: none; color: var(--text); font-size: 14px; }
+        #recent-chats-list { flex: 1; overflow-y: auto; }
+        .contact-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.2s; border-bottom: 1px solid var(--border); }
+        .contact-item:hover { background: var(--btn-hover); }
+        .contact-img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); }
+        .badge { font-size: 16px; margin-left: 4px; vertical-align: middle; }
+        .badge-admin { color: #ff4757; } .badge-verified { color: #0084ff; } .badge-support { color: #ffa502; } .badge-policy { color: #61a536; }
+        #chat-window { flex: 1; display: flex; flex-direction: column; position: relative; transition: transform 0.3s ease; background: var(--bg); }
+        #chat-header { padding: 0 20px; height: 65px; display: flex; align-items: center; background: var(--sidebar); border-bottom: 1px solid var(--border); }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        #mobile-back { display: none; margin-right: 8px; }
+        .msg { max-width: 65%; padding: 9px 14px; font-size: 15px; line-height: 1.4; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .sent { align-self: flex-end; background: var(--msg-sent); color: white; border-radius: 18px 18px 4px 18px; }
+        .received { align-self: flex-start; background: var(--msg-received); color: var(--text); border-radius: 18px 18px 18px 4px; border: 1px solid var(--border); }
+        .msg img { max-width: 100%; border-radius: 12px; margin-top: 5px; display: block; cursor: pointer; }
+        .time { font-size: 10px; opacity: 0.6; display: block; margin-top: 4px; text-align: right; }
+        .voice-row { display: flex; align-items: center; gap: 8px; }
+        audio { height: 35px; width: 210px; filter: contrast(0.9); }
+        #input-form { padding: 12px 16px; display: flex; align-items: center; gap: 8px; background: var(--sidebar); border-top: 1px solid var(--border); }
+        .input-wrapper { flex: 1; background: var(--bg); border-radius: 22px; padding: 4px 12px; display: flex; align-items: center; }
+        #msg-input { flex: 1; border: none; background: none; padding: 10px; outline: none; color: var(--text); font-size: 15px; }
+        .send-btn { color: var(--accent) !important; font-weight: bold; }
+        .recording-active { color: #f44336 !important; animation: pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity: 0.5; transform: scale(1.1); } }
+        #profile-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-card { background: var(--sidebar); width: 320px; border-radius: 24px; padding: 30px; text-align: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); cursor: pointer; }
+ .voice-row {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 46, 46, 0.05); /* Soft background shadow */
+    padding: 8px;
+    border-radius: 24px;
+    margin: 4px 0;
+}
+
+/* Sent bubble voice row should be slightly transparent white */
+.sent .voice-row {
+    background: rgb(161, 89, 89);
+}
+
+/* Chrome/Safari specific styling for the inner controls */
+audio::-webkit-media-controls-enclosure {
+    background-color: #36d678c0;
+}
+
+audio::-webkit-media-controls-panel {
+    background-color: transparent;
+}
+        /* Incoming Call Toast */
+        #incoming-toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--sidebar); padding: 15px 25px; border-radius: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 3000;
+            display: none; align-items: center; gap: 15px; border: 1px solid var(--accent);
+        }
+
+        
+
+        @media (max-width: 768px) {
+    #sidebar { 
+        width: 100%; 
+        position: absolute; 
+        height: 100%; 
+        z-index: 10;
+    }
+
+    #chat-window { 
+        width: 100%; 
+        position: absolute; 
+        height: 100%; 
+        transform: translateX(100%); 
+        display: none; /* <--- THIS removes the div entirely when no chat is open */
+        z-index: 20;
+    }
+
+    /* When a chat is clicked, bring the div back and slide it in */
+    body.chat-active #chat-window { 
+        display: flex; 
+        transform: translateX(0); 
+    }
+
+    body.chat-active #sidebar { 
+        transform: translateX(-100%); 
+    }
+
+    #mobile-back { display: flex; }
+    .msg { max-width: 85%; }
+}
+    </style>
+</head>
+<body id="app-body">
+
+    <div id="incoming-toast">
+        <span class="material-icons-round" style="color:var(--accent); animation: pulse 1s infinite;">call</span>
+        <div style="text-align:left">
+            <div style="font-weight:bold; font-size:14px;">Incoming Call</div>
+            <div id="toast-name" style="font-size:12px; opacity:0.7">User is calling...</div>
+        </div>
+        <button onclick="answerCallFromToast()" style="background: #2ecc71; color: white; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer;">Answer</button>
+    </div>
+
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <img id="my-avatar" src="https://via.placeholder.com/40" class="user-avatar" onclick="window.location.href='profile.html'">
+            <div style="display:flex;">
+                <button onclick="cycleTheme()" class="icon-btn" title="Appearance"><span class="material-icons-round">palette</span></button>
+                <button onclick="logout()" class="icon-btn logout-btn" title="Log out"><span class="material-icons-round">logout</span></button>
+            </div>
+        </div>
+        <div class="search-area">
+            <div class="search-box">
+                <span class="material-icons-round" style="font-size:18px; color:#8e8e8e; margin-left:5px">search</span>
+                <input type="text" id="search-input" placeholder="Search Messenger">
+            </div>
+        </div>
+        <div id="recent-chats-list">
+             <footer style="padding: 15px; text-align: center; border-top: 1px solid var(--border); background: var(--sidebar);">
+            <p style="font-size: 11px; opacity: 0.6; color: var(--text); font-weight: 500; letter-spacing: 0.3px;">
+                Created & Maintained By <br>
+                <span style="color: var(--accent); font-weight: 600;">Soham Hasan & Associates</span>
+            </p>
+        </footer>
+        </div>
+    </div>
+
+
+ <button id="catch-me-up-btn" class="catch-up-pill draggable-pill">
+    <span>✨</span> Catch Me Up
+</button>
+
+<div id="summaryOverlay" class="summary-overlay">
+    <div class="summary-card">
+        <h3>
+            <span>Smart Summary</span>
+            <button id="closeSummaryBtn" style="border:none; background:none; cursor:pointer; font-size: 20px;">✕</button>
+        </h3>
+        <ul id="summaryContent" class="summary-list"></ul>
+    </div>
+</div>
+
+
+    <div id="chat-window">
+        <div id="chat-header">
+            <button id="mobile-back" class="icon-btn" onclick="closeChatMobile()"><span class="material-icons-round">arrow_back</span></button>
+            <img id="header-img" src="" class="user-avatar" style="width:40px; height:40px; display:none; margin-right:12px;">
+            <div style="flex:1">
+                <div id="header-name" style="font-weight:600; font-size:16px; color: var(--header-text); display: flex; align-items: center;">Messenger</div>
+                <div id="header-status" style="font-size:12px; color:#65676b">Select a chat</div>
+            </div>
+            <button class="icon-btn" onclick="triggerCallWindow()"><span class="material-icons-round">call</span></button>
+            <button class="icon-btn" onclick="viewUserInfo()"><span class="material-icons-round">info</span></button>
+        </div>
+        <div id="messages"></div>
+        <form id="input-form">
+            <input type="file" id="file-input" style="display:none" accept="image/*">
+            <button type="button" class="icon-btn" onclick="document.getElementById('file-input').click()"><span class="material-icons-round" style="color:var(--accent)">add_circle</span></button>
+            <button type="button" id="mic-btn" class="icon-btn"><span class="material-icons-round" style="color:var(--accent)">mic</span></button>
+            <div class="input-wrapper">
+                <input type="text" id="msg-input" placeholder="Aa" disabled autocomplete="off">
+                <button type="button" class="icon-btn" style="width:32px"><span class="material-icons-round" style="font-size:20px">sentiment_satisfied_alt</span></button>
+            </div>
+            <button type="submit" class="icon-btn send-btn"><span class="material-icons-round">send</span></button>
+        </form>
+    </div>
+
+    <div id="profile-modal">
+        <div class="modal-card">
+            <button onclick="document.getElementById('profile-modal').style.display='none'" style="position:absolute; top:15px; right:15px; border:none; background:none; cursor:pointer; color: var(--text)"><span class="material-icons-round">close</span></button>
+            <img id="modal-img" src="" style="width:120px; height:120px; border-radius:50%; object-fit:cover; border:3px solid var(--accent); margin-bottom:15px;">
+            <h2 id="modal-name" style="color:var(--text); display: flex; align-items: center; justify-content: center;"></h2>
+            <p id="modal-location" style="opacity: 0.7; font-size: 14px; margin-top:5px; color:var(--text)"></p>
+        </div>
+    </div>
+
+    <script src="sounds.js"></script>
+    <script type="module" src="summary.js"></script>
+
+<script type="module">
+   // Change it to this in your index.html or main script
+window.allMessages = [];
+  
+  // Example of what your existing code might look like:
+function onNewMessageReceived(user, msgText) {
+    // 1. Your existing UI code...
+    displayInChatBox(user, msgText);
+
+    // 2. THE FIX: Update the summary data source
+    if (!window.allMessages) window.allMessages = [];
+    
+    // Only keep the last 50 messages to save AI tokens
+    window.allMessages.push({ sender: user, text: msgText });
+    if (window.allMessages.length > 50) window.allMessages.shift();
+}
+
+
+    // 1. IMPORTS
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue, off, onDisconnect } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+    import { initTheme, cycleTheme } from "./theme.js";
+    // Add these to your index.html imports
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { openChat, send, listenForDeliveries } from "./messages.js";
+
+
+   
+
+    // Inside your <script type="module"> in index.html
+    import { initSearch } from "./search.js";
+
+    // 2. CONFIG & INIT
+    const firebaseConfig = {
+        apiKey: "AIzaSyAPkoJeH96TPK3Gj5L0kSnMqL9cYdvMmto",
+        authDomain: "messenger-of-soham.firebaseapp.com",
+        projectId: "messenger-of-soham",
+        databaseURL: "https://messenger-of-soham-default-rtdb.europe-west1.firebasedatabase.app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const currentUser = localStorage.getItem('messengerUser');
+    // Initialize theme immediately on load
+    initTheme();
+
+    
+
+    if (!currentUser) window.location.href = "login.html";
+
+    // State Variables
+    let activeChatPartner = null;
+    let mediaRecorder, audioChunks = [];
+    let recordingStartTime; // Added to track duration
+
+    // 3. UI HELPERS
+    const getBadges = (p) => {
+        let html = '';
+        if (p.isAdmin) html += `<span class="material-icons-round badge badge-admin" title="Admin">verified_user</span>`;
+        if (p.isVerified) html += `<span class="material-icons-round badge badge-verified" title="Verified">verified</span>`;
+        if (p.isSupport) html += `<span class="material-icons-round badge badge-support" title="Support">build_circle</span>`;
+        if (p.isPolicy) html += `<span class="material-icons-round badge badge-policy" title="Policy">policy</span>`;
+        return html;
+    };
+
+    window.cycleTheme = cycleTheme;
+
+    window.allMessages.push({ sender: "User123", text: "Hello world" });
+
+    // 4. USER STATUS & PROFILE
+    set(ref(db, `users/${currentUser}/status`), "online");
+    onDisconnect(ref(db, `users/${currentUser}/status`)).set("offline");
+
+    onValue(ref(db, `profiles/${currentUser}`), s => {
+        if(s.exists() && s.val().photoURL) document.getElementById('my-avatar').src = s.val().photoURL;
+    });
+
+    
+    // 5. CHAT LISTENER (Sidebar)
+onValue(ref(db, `userChats/${currentUser}`), async (snapshot) => {
+    const list = document.getElementById('recent-chats-list');
+    
+    if (!snapshot.exists()) {
+        list.innerHTML = `
+            <div style="padding: 40px 20px; text-align: center; opacity: 0.5;">
+                <p style="font-size: 11px;">Created & Maintained By</p>
+                <p style="font-weight: 600; color: var(--accent);">Soham Hasan & Associates</p>
+            </div>`;
+        return;
+    }
+
+const auth = getAuth();
+
+    onAuthStateChanged(auth, (user) => {
+    if (user) {
+        const currentUser = user.uid; // or username
+        
+        // 1. Start the delivery listener immediately
+        listenForDeliveries(db, currentUser);
+        
+        // 2. Load your friends list, etc.
+        loadFriends(currentUser);
+    }
+    
+});
+
+
+
+
+    // 1. Fetch all profile data first
+    const chatPromises = [];
+    snapshot.forEach((child) => {
+        const uid = child.key;
+        chatPromises.push(get(ref(db, `profiles/${uid}`)).then(s => ({ uid, p: s.val() || {} })));
+    });
+
+    const chats = await Promise.all(chatPromises);
+    
+    // 2. Clear and build the new list
+    // 1. Get the current user from storage
+const currentUserID = localStorage.getItem('messengerUser');
+
+// 2. Clear and build the new list
+list.innerHTML = "";
+let htmlContent = "";
+
+// FIX: Make sure (chat, index) are both present in the arguments
+chats.forEach((chat, index) => {
+    const { uid, p } = chat;
+    
+    htmlContent += `
+        <div class="contact-item" onclick="handleOpenChat('${uid}')">
+            <img src="${p.photoURL || 'https://ui-avatars.com/api/?name=' + uid}" class="contact-img" onclick="event.stopPropagation(); viewFriendProfile('${uid}')">
+            <div style="flex:1">
+                <div style="font-weight:600; font-size: 15px; display:flex; align-items:center;">
+                    ${p.fullName || uid} ${getBadges(p)}
+                </div>
+                <div id="last-msg-${uid}" style="font-size:12px; opacity:0.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">
+                    Loading...
+                </div>
+            </div>
+        </div>`;
+
+    // Start listening for messages for this specific contact
+    // We use a tiny timeout to ensure the HTML exists in the DOM first
+    setTimeout(() => listenToLastMessage(uid, currentUserID), 0);
+
+    // Wait a tiny bit for DOM to render, then attach listener
+    setTimeout(() => listenToLastMessage(uid), 0);
+
+// After adding the HTML, we start a listener for this specific chat
+listenToLastMessage(uid);
+
+        // 3. Compact Personal Banner (after index 1)
+if (index === 1) {
+    htmlContent += `
+        <div class="list-banner-ad" onclick="window.handleAdClick()" 
+            style="margin: 8px 12px; padding: 10px 14px; 
+                   background: linear-gradient(135deg, var(--accent), #50a1ff); 
+                   border-radius: 12px; cursor: pointer; color: white; 
+                   display: flex; align-items: center; gap: 10px; 
+                   position: relative; overflow: hidden; box-shadow: 0 4px 12px -4px var(--accent);">
+            
+            <div style="background: rgba(255,255,255,0.2); width: 32px; height: 32px; border-radius: 8px; 
+                        display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1;">
+                <span class="material-icons-round" style="font-size: 18px;">verified</span>
+            </div>
+            
+            <div style="flex: 1; z-index: 1;">
+                <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.3px; line-height: 1;">Thank you For Choosing Us</div>
+                <div style="font-size: 10px; opacity: 0.85; margin-top: 2px;">Premium Server Speed</div>
+            </div>
+
+            <span class="material-icons-round" style="position: absolute; right: -8px; bottom: -8px; font-size: 45px; opacity: 0.1; transform: rotate(10deg);">bolt</span>
+        </div>`;
+}
+    });
+
+    // 4. Update DOM once
+    list.innerHTML = htmlContent;
+
+    // 5. Append Watermark at the bottom
+    list.insertAdjacentHTML('beforeend', `
+        <div style="padding: 20px; text-align: center; margin-top: auto;">
+            <p style="font-size: 11px; opacity: 0.6; color: var(--text); font-weight: 500; letter-spacing: 0.3px;">
+                Created & Maintained By <br>
+                <span style="color: var(--accent); font-weight: 600;">Soham Hasan & Associates</span>
+            </p>
+        </div>
+    `);
+});
+
+// Define Global Ad Click
+window.handleAdClick = () => alert("Messenger Pro is coming soon!");
+
+// Wrapper to link index logic with messages.js
+window.handleOpenChat = async (uid) => {
+    activeChatPartner = uid;
+    // ADD THIS LINE HERE:
+    window.allMessages = [];
+    document.body.classList.add('chat-active'); // For mobile view
+
+    const pSnap = await get(ref(db, `profiles/${uid}`));
+    const p = pSnap.exists() ? pSnap.val() : {};
+    const hImg = document.getElementById('header-img');
+    
+    hImg.src = p.photoURL || 'https://via.placeholder.com/40';
+    hImg.style.display = "block";
+    hImg.onclick = () => window.viewFriendProfile(uid);
+    document.getElementById('header-name').innerHTML = `${p.fullName || uid} ${getBadges(p)}`;
+    
+    onValue(ref(db, `users/${uid}/status`), s => {
+        const status = document.getElementById('header-status');
+        const isOnline = s.val() === "online";
+        status.innerText = isOnline ? "Active Now" : "Offline";
+        status.style.color = isOnline ? "#4ade80" : "#888";
+    });
+
+    openChat(db, currentUser, uid); 
+};
+
+
+   // 6. INPUT HANDLERS
+document.getElementById('input-form').onsubmit = e => {
+    e.preventDefault();
+    const input = document.getElementById('msg-input');
+    const msgText = input.value.trim(); // Capture the text
+
+    if(msgText && activeChatPartner) {
+        // --- ADDED FOR AI SUMMARY ---
+        if (window.allMessages) {
+            window.allMessages.push({ sender: "Me", text: msgText });
+            if (window.allMessages.length > 50) window.allMessages.shift();
+        }
+        // ----------------------------
+
+        send(db, currentUser, activeChatPartner, { text: msgText });
+        input.value = "";
+    }
+};
+
+    document.getElementById('file-input').onchange = e => {
+        const f = e.target.files[0]; if(!f) return;
+        const r = new FileReader(); 
+        r.onload = ev => send(db, currentUser, activeChatPartner, { text: "Sent a photo", image: ev.target.result }); 
+        r.readAsDataURL(f);
+    };
+
+
+
+    // Voice Messages Part 
+
+
+    // Add these variables to your state variables in index.html
+let recordTimer, secondsElapsed = 0;
+
+document.getElementById('mic-btn').onclick = async function() {
+    if(!activeChatPartner) return;
+    
+    // If we are currently recording, STOP it
+    if(mediaRecorder && mediaRecorder.state === "recording") { 
+        mediaRecorder.stop(); 
+        this.classList.remove('recording-active'); 
+        return; 
+    }
+    
+    // Start Recording
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream); 
+        audioChunks = [];
+        
+        // --- FIX: Capture the exact start time ---
+        recordingStartTime = Date.now(); 
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        
+        mediaRecorder.onstop = () => {
+            // --- FIX: Calculate total seconds elapsed ---
+            const durationMs = Date.now() - recordingStartTime;
+            const totalSeconds = Math.round(durationMs / 1000);
+            const durationLabel = formatDuration(totalSeconds);
+
+            const blob = new Blob(audioChunks, { type: 'audio/webm' });
+            const reader = new FileReader(); 
+            reader.onloadend = () => {
+                // Send the message with the REAL duration
+                send(db, currentUser, activeChatPartner, { 
+                    text: "Voice Message", 
+                    voice: reader.result, 
+                    duration: durationLabel, // Sent to Firebase
+                    type: "voice" 
+                });
+            };
+            reader.readAsDataURL(blob);
+            stream.getTracks().forEach(t => t.stop());
+        };
+
+        mediaRecorder.start(); 
+        this.classList.add('recording-active');
+    } catch(e) { 
+        alert("Enable microphone access to send voice messages."); 
+    }
+};
+
+// --- Helper Function to turn seconds into 0:00 format ---
+function formatDuration(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+
+
+
+
+
+
+
+// replacing open conversation logic
+
+function listenToLastMessage(partnerUid, myId) {
+    if (!myId || !partnerUid) return;
+
+    const chatId = [myId, partnerUid].sort().join("_");
+    const lastMsgRef = ref(db, `lastMessages/${chatId}`);
+
+    onValue(lastMsgRef, (snapshot) => {
+        const data = snapshot.val();
+        const el = document.getElementById(`last-msg-${partnerUid}`);
+        if (!el) return;
+
+        if (data) {
+            const prefix = data.sender === myId ? "You: " : "";
+            
+            if (data.voice) {
+                el.innerHTML = `<span class="material-icons-round" style="font-size:14px; vertical-align:middle;">mic</span> Voice note`;
+            } else if (data.image) {
+                el.innerHTML = `<span class="material-icons-round" style="font-size:14px; vertical-align:middle;">image</span> Photo`;
+            } else {
+                el.innerText = prefix + (data.text || "New message");
+            }
+        } else {
+            el.innerText = "No messages yet";
+        }
+    });
+}
+
+// Make it global if needed
+window.listenToLastMessage = listenToLastMessage;
+
+
+
+
+
+
+
+
+    // 7. CALL LOGIC
+    onValue(ref(db, `calls/${currentUser}/incoming`), (snapshot) => {
+        const data = snapshot.val();
+        const toast = document.getElementById('incoming-toast');
+        if (data) {
+            toast.style.display = 'flex';
+            if(window.SoundManager) window.SoundManager.startRingtone();
+            document.getElementById('toast-name').innerText = `${data.callerName || "Unknown"} is calling...`;
+        } else {
+            toast.style.display = 'none';
+            if(window.SoundManager) window.SoundManager.stopRingtone();
+        }
+    });
+
+    window.triggerCallWindow = () => {
+        if(activeChatPartner) window.open(`call.html?uid=${activeChatPartner}&action=call`, 'MessengerCall', 'width=360,height=640');
+    };
+
+    window.answerCallFromToast = () => {
+        if(window.SoundManager) window.SoundManager.stopRingtone();
+        window.open(`call.html?action=answer`, 'MessengerCall', 'width=360,height=640');
+        document.getElementById('incoming-toast').style.display = 'none';
+    };
+
+    // 8. GLOBALS (Keep your existing implementations)
+    window.logout = () => { localStorage.removeItem('messengerUser'); window.location.href = "login.html"; };
+    window.viewFriendProfile = async (uid) => { /* ... existing profile code ... */ };
+   
+    window.closeChatMobile = () => {
+        document.body.classList.remove('chat-active');
+        activeChatPartner = null;
+    };
+    window.viewUserInfo = () => {
+        if (activeChatPartner) window.location.href = `userInfo.html?uid=${activeChatPartner}`;
+        else alert("Please select a chat first");
+    };
+
+
+     // Ensure window.handleOpenChat is used to bridge the module gap
+initSearch(db, 'search-input', 'recent-chats-list', currentUser, window.handleOpenChat);
+
+</script>
+</body>
+</html>

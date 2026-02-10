@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Information - Messenger</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg: #f0f2f5; 
+            --accent: #0084ff; 
+            --text: #050505; 
+            --card: #ffffff; 
+            --secondary-text: #65676b;
+            --border: #e4e6eb;
+        }
+
+        [data-theme="midnight"] {
+            --bg: #0b141a; --card: #111b21; --text: #e9edef; --border: #222d34; --secondary-text: #aebac1;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'Poppins', sans-serif; /* Applied Poppins Globally */
+        }
+        
+        body { background: var(--bg); display: flex; justify-content: center; color: var(--text); transition: 0.3s; }
+
+        .info-container { 
+            width: 100%; 
+            max-width: 450px; 
+            background: var(--card); 
+            min-height: 100vh; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.05); 
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header { 
+            padding: 16px 20px; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            position: sticky; 
+            top: 0; 
+            background: var(--card); 
+            z-index: 10; 
+            border-bottom: 1px solid var(--border); 
+        }
+
+        .back-btn { 
+            cursor: pointer; 
+            color: var(--text); 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: 0.2s;
+        }
+        .back-btn:hover { background: rgba(0,0,0,0.05); }
+        
+        .profile-section { 
+            text-align: center; 
+            padding: 40px 20px; 
+            border-bottom: 8px solid var(--bg); 
+        }
+
+        #user-img { 
+            width: 140px; 
+            height: 140px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            border: 4px solid var(--card); 
+            outline: 3px solid var(--accent);
+            margin-bottom: 18px;
+        }
+
+        /* --- PERFECT HORIZONTAL ALIGNMENT --- */
+        .name-row {
+            font-weight: 700; 
+            font-size: 22px; 
+            display: flex; 
+            flex-direction: row;
+            align-items: center; 
+            justify-content: center; 
+            gap: 6px;
+            line-height: 1.2;
+        }
+
+        .name-row .material-icons-round {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px; 
+            vertical-align: middle;
+        }
+
+        #username-tag { 
+            color: var(--accent); 
+            font-weight: 600; 
+            font-size: 14px; 
+            margin-top: 4px;
+            margin-bottom: 12px; 
+            letter-spacing: 0.2px;
+        }
+
+        #user-role { 
+            color: var(--secondary-text); 
+            font-size: 11px; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            letter-spacing: 1.2px; 
+            background: var(--bg);
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        #user-bio { 
+            margin: 18px auto 0; 
+            font-size: 14px; 
+            color: var(--text); 
+            max-width: 320px; 
+            line-height: 1.6; 
+            opacity: 0.9;
+        }
+
+        .details-list { padding: 10px 0; }
+
+        .info-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 16px; 
+            padding: 16px 24px; 
+            border-bottom: 1px solid var(--border); 
+        }
+
+        .info-item .material-icons-round { 
+            color: var(--secondary-text); 
+            font-size: 22px; 
+        }
+
+        .info-label { 
+            font-size: 11px; 
+            color: var(--secondary-text); 
+            display: block; 
+            margin-bottom: 1px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value { 
+            font-size: 15px; 
+            font-weight: 500; 
+            color: var(--text); 
+        }
+        
+        .social-btn { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 10px; 
+            margin: 30px 24px; 
+            padding: 14px; 
+            background: var(--accent); 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            font-size: 15px;
+            transition: 0.2s;
+        }
+        .social-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+        .badge-admin { color: #ff4757; }
+        .badge-verified { color: #0084ff; }
+        .badge-support { color: #ffa502; }
+    </style>
+</head>
+<body id="info-body">
+
+    <div class="info-container">
+        <div class="header">
+            <div class="material-icons-round back-btn" onclick="history.back()">arrow_back</div>
+            <span style="font-weight: 600; font-size: 18px;">Contact Details</span>
+        </div>
+
+        <div class="profile-section">
+            <img id="user-img" src="https://via.placeholder.com/140" alt="User">
+            
+            <div class="name-row">
+                <span id="user-name">Loading...</span>
+                <span id="badge-container" style="display: flex; gap: 4px;"></span>
+            </div>
+
+            <div id="username-tag">@username</div>
+            <div id="user-role">MEMBER</div>
+            <div id="user-bio">No description provided.</div>
+        </div>
+
+        <div class="details-list">
+            <div class="info-item">
+                <span class="material-icons-round">place</span>
+                <div>
+                    <span class="info-label">Lives in</span>
+                    <span id="user-location" class="info-value">Not specified</span>
+                </div>
+            </div>
+            <div class="info-item">
+                <span class="material-icons-round">school</span>
+                <div>
+                    <span class="info-label">Studies at</span>
+                    <span id="user-studies" class="info-value">Not specified</span>
+                </div>
+            </div>
+            <div class="info-item">
+                <span class="material-icons-round">work</span>
+                <div>
+                    <span class="info-label">Works at</span>
+                    <span id="user-works" class="info-value">Not specified</span>
+                </div>
+            </div>
+        </div>
+
+        <a id="user-social" href="#" target="_blank" class="social-btn" style="display:none;">
+            <span class="material-icons-round">link</span>
+            Visit Social Profile
+        </a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPkoJeH96TPK3Gj5L0kSnMqL9cYdvMmto",
+            authDomain: "messenger-of-soham.firebaseapp.com",
+            projectId: "messenger-of-soham",
+            databaseURL: "https://messenger-of-soham-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Load theme from localStorage
+        const currentTheme = localStorage.getItem('chatTheme') || 'classic';
+        document.getElementById('info-body').setAttribute('data-theme', currentTheme);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetUid = urlParams.get('uid');
+
+        if (!targetUid) {
+            window.location.href = "chatBox.html";
+        }
+
+        const getBadges = (p) => {
+            let html = '';
+            if (p.isAdmin) html += `<span class="material-icons-round badge-admin" title="Admin">verified_user</span>`;
+            if (p.isVerified) html += `<span class="material-icons-round badge-verified" title="Verified">verified</span>`;
+            if (p.isSupport) html += `<span class="material-icons-round badge-support" title="Support">build_circle</span>`;
+            return html;
+        };
+
+        async function loadUserInfo() {
+            try {
+                const snap = await get(ref(db, `profiles/${targetUid}`));
+                if (snap.exists()) {
+                    const d = snap.val();
+                    
+                    document.getElementById('user-img').src = d.photoURL || 'https://via.placeholder.com/140';
+                    document.getElementById('user-name').innerText = d.fullName || targetUid;
+                    document.getElementById('badge-container').innerHTML = getBadges(d);
+                    document.getElementById('username-tag').innerText = "@" + targetUid;
+                    
+                    document.getElementById('user-role').innerText = d.role || "MEMBER";
+                    document.getElementById('user-bio').innerText = d.bio || "No bio added yet.";
+                    document.getElementById('user-location').innerText = d.location || "Unknown";
+                    document.getElementById('user-studies').innerText = d.studies || "Not specified";
+                    document.getElementById('user-works').innerText = d.works || "Not specified";
+                    
+                    if (d.socialLink && d.socialLink.startsWith('http')) {
+                        const btn = document.getElementById('user-social');
+                        btn.href = d.socialLink;
+                        btn.style.display = 'flex';
+                    }
+                } else {
+                    document.getElementById('user-name').innerText = "User not found";
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        loadUserInfo();
+    </script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile - Messenger</title>
+    <style>
+        :root { --bg: #f0f2f5; --accent: #0084ff; --text: #050505; }
+        body { background: var(--bg); font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 40px 20px; color: var(--text); }
+        .card { background: white; padding: 30px; border-radius: 15px; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        
+        .profile-pic-container { text-align: center; margin-bottom: 25px; position: relative; }
+        #profile-img { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); background: #eee; }
+        
+        .upload-btn { display: inline-block; margin-top: 10px; color: var(--accent); cursor: pointer; font-size: 14px; font-weight: 600; }
+        input[type="file"] { display: none; }
+        
+        .input-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; font-size: 12px; font-weight: 600; color: #65676b; margin-bottom: 5px; text-transform: uppercase; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; outline: none; transition: border 0.2s; }
+        input[type="text"]:focus { border-color: var(--accent); }
+        
+        .btn-save { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 10px; margin-top: 20px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .btn-save:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-back { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #65676b; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2 style="text-align:center; margin-bottom:25px;">Edit Profile</h2>
+        
+        <div class="profile-pic-container">
+            <img id="profile-img" src="https://via.placeholder.com/130" alt="Profile">
+            <br>
+            <label for="file-input" class="upload-btn">Change Photo</label>
+            <input type="file" id="file-input" accept="image/*">
+        </div>
+
+        <div class="input-group">
+    <label>Your Username (Share this so others can find you)</label>
+    <input type="text" id="username-display" disabled style="background: #f8f9fa; color: #888; cursor: not-allowed; border-style: dashed;">
+</div>
+
+        <div class="input-group">
+            <label>Full Name</label>
+            <input type="text" id="full-name" placeholder="Enter your full name">
+        </div>
+
+        <div class="input-group">
+            <label>Location</label>
+            <input type="text" id="location" placeholder="City, Country">
+        </div>
+
+        <div class="input-group">
+            <label>Bio</label>
+            <input type="text" id="bio" placeholder="Short description about yourself">
+        </div>
+
+        <div class="input-group">
+            <label>Role</label>
+            <input type="text" id="role" placeholder="e.g. Software Engineer, Student">
+        </div>
+
+        <div class="input-group">
+            <label>Studies At</label>
+            <input type="text" id="studies" placeholder="University or School">
+        </div>
+
+        <div class="input-group">
+            <label>Works At</label>
+            <input type="text" id="works" placeholder="Company name">
+        </div>
+
+        <div class="input-group">
+            <label>Social Link (URL)</label>
+            <input type="text" id="social-link" placeholder="https://instagram.com/yourname">
+        </div>
+
+        <button class="btn-save" id="save-profile">Save Changes</button>
+        <a href="index.html" class="btn-back">Cancel</a>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAPkoJeH96TPK3Gj5L0kSnMqL9cYdvMmto",
+            authDomain: "messenger-of-soham.firebaseapp.com",
+            projectId: "messenger-of-soham",
+            databaseURL: "https://messenger-of-soham-default-rtdb.europe-west1.firebasedatabase.app",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const currentUser = localStorage.getItem('messengerUser');
+        if (!currentUser) window.location.href = "login.html";
+
+        const profileImg = document.getElementById('profile-img');
+        const fullNameInput = document.getElementById('full-name');
+        const locationInput = document.getElementById('location');
+        const bioInput = document.getElementById('bio');
+const roleInput = document.getElementById('role');
+const studiesInput = document.getElementById('studies');
+const worksInput = document.getElementById('works');
+const socialInput = document.getElementById('social-link');
+        let base64Image = "";
+
+        // 1. Load Profile Data from Database
+        async function loadProfile() {
+    const snap = await get(ref(db, 'profiles/' + currentUser));
+    if (snap.exists()) {
+        const data = snap.val();
+        // Add this inside the loadProfile function
+document.getElementById('username-display').value = "@" + currentUser;
+        fullNameInput.value = data.fullName || "";
+        locationInput.value = data.location || "";
+        // New Fields
+        bioInput.value = data.bio || "";
+        roleInput.value = data.role || "";
+        studiesInput.value = data.studies || "";
+        worksInput.value = data.works || "";
+        socialInput.value = data.socialLink || "";
+        
+        if (data.photoURL) {
+            profileImg.src = data.photoURL;
+            base64Image = data.photoURL;
+        }
+    }
+}
+        loadProfile();
+
+        // 2. Image Compression (To keep database light & free)
+        document.getElementById('file-input').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 200; // Small size is plenty for chat icons
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Convert to compressed JPEG
+                    base64Image = canvas.toDataURL('image/jpeg', 0.7); 
+                    profileImg.src = base64Image;
+                };
+            };
+        };
+
+        // 3. Save to Database (No Storage needed!)
+        document.getElementById('save-profile').onclick = async () => {
+    const btn = document.getElementById('save-profile');
+    btn.innerText = "Saving...";
+    btn.disabled = true;
+
+    try {
+        await set(ref(db, 'profiles/' + currentUser), {
+            fullName: fullNameInput.value,
+            location: locationInput.value,
+            bio: bioInput.value,
+            role: roleInput.value,
+            studies: studiesInput.value,
+            works: worksInput.value,
+            socialLink: socialInput.value,
+            photoURL: base64Image,
+            lastUpdated: Date.now()
+        });
+        alert("Profile Updated Successfully!");
+        window.location.href = "index.html";
+    } catch (err) {
+        alert("Error: " + err.message);
+        btn.disabled = false;
+        btn.innerText = "Save Changes";
+    }
+};
+    </script>
+</body>
+</html>

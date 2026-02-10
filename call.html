@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Call</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #0084ff; --text: #ffffff; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { 
+            background: #0f0f0f; 
+            color: white; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        #call-avatar { width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--accent); margin-bottom: 25px; object-fit: cover; box-shadow: 0 0 30px rgba(0,132,255,0.4); }
+        h2 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        p { margin-bottom: 50px; opacity: 0.7; font-size: 14px; letter-spacing: 0.5px; }
+        
+        .controls { display: flex; gap: 20px; align-items: center; }
+        .icon-btn { 
+            border: none; cursor: pointer; width: 60px; height: 60px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; transition: 0.2s; 
+            outline: none; background: rgba(255,255,255,0.1);
+        }
+        .icon-btn:active { transform: scale(0.9); }
+        .icon-btn .material-icons-round { font-size: 28px; color: white; }
+        
+        #mute-btn.muted { background: #5f6368; }
+        #answer-btn { background: #2ecc71; width: 70px; height: 70px; }
+        #hangup-btn { background: #ff4757; width: 70px; height: 70px; }
+    </style>
+</head>
+<body>
+
+    <img id="call-avatar" src="https://via.placeholder.com/150">
+    <h2 id="call-name">Connecting...</h2>
+    <p id="call-status">Initializing...</p>
+    
+    <div class="controls">
+        <button id="mute-btn" onclick="toggleMute()" style="background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 50px; height: 50px; color: white; cursor: pointer;">
+    <span class="material-icons">mic</span>
+</button>
+        <button id="answer-btn" class="icon-btn" style="display:none">
+            <span class="material-icons-round">call</span>
+        </button>
+        <button id="hangup-btn" class="icon-btn">
+            <span class="material-icons-round">call_end</span>
+        </button>
+    </div>
+    
+    <audio id="remote-audio" autoplay playsinline style="display:none;"></audio>
+
+    <script src="sounds.js"></script>
+
+   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+    import { getDatabase, ref, set, get, push, onValue, remove, update, onChildAdded } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAPkoJeH96TPK3Gj5L0kSnMqL9cYdvMmto",
+        authDomain: "messenger-of-soham.firebaseapp.com",
+        projectId: "messenger-of-soham",
+        databaseURL: "https://messenger-of-soham-default-rtdb.europe-west1.firebasedatabase.app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+    const partnerUid = params.get('uid'); 
+    const currentUser = localStorage.getItem('messengerUser');
+
+    const statusEl = document.getElementById('call-status');
+    const nameEl = document.getElementById('call-name');
+    const imgEl = document.getElementById('call-avatar');
+    const remoteAudio = document.getElementById('remote-audio');
+
+    let peerConnection;
+    let localStream;
+    let activePartner = partnerUid;
+    let candidateQueue = []; // Holds early network paths
+    const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+    // --- 1. SYNC & CLEANUP ---
+    let initialLoad = true;
+    onValue(ref(db, `calls/${currentUser}/active`), (snapshot) => {
+        if (initialLoad) { initialLoad = false; return; }
+        if (snapshot.val() === false) {
+            statusEl.innerText = "Call Ended";
+            setTimeout(() => {
+                cleanup();
+                window.close();
+            }, 1200);
+        }
+    });
+
+    // --- 2. THE ENGINE ---
+    async function initWebRTC(targetId, myRole) {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+
+        peerConnection.ontrack = (e) => {
+            remoteAudio.srcObject = e.streams[0];
+            remoteAudio.play().catch(() => statusEl.innerText = "Tap to enable audio");
+            statusEl.innerText = "Connected";
+        };
+
+        peerConnection.onicecandidate = (e) => {
+            if (e.candidate) {
+                const path = myRole === 'caller' ? 'callerCandidates' : 'receiverCandidates';
+                push(ref(db, `calls/${targetId}/${path}`), e.candidate.toJSON());
+            }
+        };
+
+        // Listen for candidates coming FROM the partner
+        const listenPath = myRole === 'caller' ? 'receiverCandidates' : 'callerCandidates';
+        onChildAdded(ref(db, `calls/${currentUser}/${listenPath}`), (snapshot) => {
+            const candidate = new RTCIceCandidate(snapshot.val());
+            if (peerConnection.remoteDescription) {
+                peerConnection.addIceCandidate(candidate);
+            } else {
+                candidateQueue.push(candidate);
+            }
+        });
+    }
+
+    function processQueue() {
+        candidateQueue.forEach(c => peerConnection.addIceCandidate(c));
+        candidateQueue = [];
+    }
+
+    // --- 3. EXECUTION ---
+    if (action === 'answer') {
+        document.getElementById('answer-btn').style.display = 'flex';
+        
+        get(ref(db, `calls/${currentUser}/incoming`)).then(async (s) => {
+            if (s.exists()) {
+                const data = s.val();
+                activePartner = data.caller;
+                const profile = await get(ref(db, `profiles/${activePartner}`));
+                nameEl.innerText = profile.val()?.fullName || data.callerName;
+                imgEl.src = profile.val()?.photoURL || "https://via.placeholder.com/150";
+                statusEl.innerText = "Incoming Call...";
+            }
+        });
+
+        document.getElementById('answer-btn').onclick = async () => {
+            document.getElementById('answer-btn').style.display = 'none';
+            await initWebRTC(activePartner, 'receiver');
+
+            const snap = await get(ref(db, `calls/${currentUser}/incoming`));
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(snap.val()));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            await set(ref(db, `calls/${activePartner}/answer`), { type: 'answer', sdp: answer.sdp });
+            processQueue();
+            statusEl.innerText = "Connected";
+        };
+
+    } else if (action === 'call') {
+        if (window.SoundManager) window.SoundManager.startDialing();
+        get(ref(db, `profiles/${partnerUid}`)).then(s => {
+            nameEl.innerText = s.val()?.fullName || "User";
+            imgEl.src = s.val()?.photoURL || "https://via.placeholder.com/150";
+        });
+
+        (async () => {
+            await initWebRTC(partnerUid, 'caller');
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            await update(ref(db, `calls/${partnerUid}`), {
+                incoming: { type: 'offer', sdp: offer.sdp, caller: currentUser, timestamp: Date.now() },
+                active: true
+            });
+            await set(ref(db, `calls/${currentUser}/active`), true);
+
+            onValue(ref(db, `calls/${currentUser}/answer`), async (s) => {
+                if (s.exists() && !peerConnection.remoteDescription) {
+                    if (window.SoundManager) window.SoundManager.stopDialing();
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(s.val()));
+                    processQueue();
+                    statusEl.innerText = "Connected";
+                }
+            });
+        })();
+    }
+
+
+let isMuted = false;
+
+window.toggleMute = () => {
+    if (!localStream) return;
+
+    // Get the audio tracks from your local microphone stream
+    const audioTracks = localStream.getAudioTracks();
+    
+    if (audioTracks.length > 0) {
+        isMuted = !isMuted;
+        audioTracks[0].enabled = !isMuted; // This stops sending audio to Alex
+
+        // Update the UI button look
+        const muteBtn = document.getElementById('mute-btn');
+        if (isMuted) {
+            muteBtn.style.background = "#e74c3c"; // Red when muted
+            muteBtn.innerHTML = '<span class="material-icons">mic_off</span>';
+        } else {
+            muteBtn.style.background = "rgba(255,255,255,0.2)"; // Original color
+            muteBtn.innerHTML = '<span class="material-icons">mic</span>';
+        }
+    }
+};
+
+
+    // --- 4. HANGUP & CLEANUP ---
+    function cleanup() {
+        if (localStream) localStream.getTracks().forEach(t => t.stop());
+        if (peerConnection) peerConnection.close();
+        remove(ref(db, `calls/${currentUser}`));
+    }
+
+    document.getElementById('hangup-btn').onclick = async () => {
+    const targetUid = activePartner || params.get('uid'); 
+    const status = statusEl.innerText;
+
+    // 1. Send the correct Chat Message
+    if (action === 'call' && (status === "Calling..." || status === "Initializing...")) {
+        // You hung up while waiting for them
+        await sendMissedCallMessage(targetUid, "Missed voice call");
+    } 
+    else if (action === 'answer' && status === "Incoming Call...") {
+        // You clicked hangup/decline on an incoming call
+        await sendMissedCallMessage(targetUid, "Declined voice call");
+    }
+
+    // 2. Kill sounds immediately
+    if (window.SoundManager) {
+        window.SoundManager.stopDialing();
+        window.SoundManager.stopRingtone();
+    }
+
+    // 3. Signal the partner to stop
+    if (targetUid) {
+        await update(ref(db, `calls/${targetUid}`), { 
+            active: false,
+            incoming: null 
+        });
+    }
+
+    // 4. Update our own status and cleanup
+    await set(ref(db, `calls/${currentUser}/active`), false);
+    
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+    if (peerConnection) peerConnection.close();
+
+    statusEl.innerText = "Call Ended";
+    
+    cleanup(); 
+    setTimeout(() => {
+        window.close();
+    }, 500);
+};
+
+
+async function sendMissedCallMessage(partnerId, text) {
+    if (!partnerId || partnerId === "null") return;
+    const chatId = [currentUser, partnerId].sort().join("_");
+    await push(ref(db, 'chats/' + chatId), {
+        text: text,
+        sender: currentUser,
+        timestamp: Date.now(),
+        type: "system"
+    });
+}
+
+
+</script>
+
+
+
+</body>
+</html>

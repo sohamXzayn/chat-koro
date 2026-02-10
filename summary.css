@@ -1,0 +1,124 @@
+/* 1. The Floating Trigger Pill (Draggable Edition) */
+.catch-up-pill {
+    position: fixed;
+    /* Starting position - JavaScript will update these */
+    top: 20px;
+    right: 20px; 
+    
+    background: linear-gradient(135deg, #007AFF, #00C6FF);
+    color: white;
+    padding: 12px 22px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    
+    /* Dragging essentials */
+    cursor: grab;
+    user-select: none;
+    touch-action: none; /* Critical for mobile dragging */
+    
+    box-shadow: 0 8px 20px rgba(0, 122, 255, 0.3);
+    z-index: 9999; /* Ensure it stays above everything */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    
+    /* Smooth transition for hover, but JS will disable this during drag */
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.catch-up-pill:active {
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+.catch-up-pill:hover {
+    box-shadow: 0 12px 25px rgba(0, 122, 255, 0.4);
+}
+
+/* Sparkle icon animation */
+.catch-up-pill span {
+    display: inline-block;
+    animation: sparkle 2s infinite ease-in-out;
+    pointer-events: none; /* Don't interfere with mouse events */
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+    50% { transform: scale(1.3) rotate(20deg); filter: brightness(1.5); }
+}
+
+/* 2. Glassmorphism Modal Overlay */
+.summary-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3); 
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    display: none; /* Managed by summary.js */
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.summary-card {
+    background: rgba(255, 255, 255, 0.9);
+    width: 90%;
+    max-width: 420px;
+    padding: 30px;
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+    animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.8) translateY(20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 3. The Summary List Styling */
+.summary-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.summary-list li {
+    padding: 15px 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    font-size: 15px;
+    color: #2c2c2e;
+    line-height: 1.6;
+    animation: slideIn 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+.summary-list li:last-child { border-bottom: none; }
+
+/* 4. Animated Loading State */
+.loading-state {
+    text-align: center;
+    padding: 30px 0;
+    color: #007AFF;
+}
+
+.spinner {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 12px;
+    animation: rotateMagic 2s infinite linear;
+}
+
+@keyframes rotateMagic {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes slideIn { 
+    from { opacity: 0; transform: translateX(-15px); } 
+    to { opacity: 1; transform: translateX(0); } 
+}
