@@ -9,7 +9,7 @@ export async function getSmartSummary(messages) {
         .join('\n');
 
     // 2. API Config
-    const API_KEY = "AIzaSyB7ZTkr0A9gAMUWZqAv2SWslKPLc2JMzMg"; 
+    const API_KEY = "PRIVATE_API_KEY"; 
     // Using the gemma-3-27b (or gemma-2 depending on your tier availability)
     const MODEL = "gemma-3-27b-it"; 
     const URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`;
@@ -61,4 +61,5 @@ async function getFallbackSummary(history, key) {
     });
     const data = await response.json();
     return data.candidates[0].content.parts[0].text;
+
 }
